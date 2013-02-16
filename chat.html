@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+<head>
+	<title>Chat Client</title>
+	<meta charset="utf-8" />
+	
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+
+	<script>
+	$(function ()
+	{
+		var socket = io.connect(),
+			$messages = $('ul#messages'),
+			$users = $('ul#users'),
+			$message = $('input#message'),
+			$username = $('input#username');
+
+		socket.on ('update chat', function (data)
+		{
+			$messages.append ('<li><strong>' + data.name + '</strong>: ' + data.message + '</li>');
+		});
+
+		socket.on ('user connected', function (data)
+		{
+			$messages.append ('<li><strong>[INFO]</strong>: User joined: ' + data.name + '</li>');
+		});
+
+		socket.on ('user disconnected', function (data)
+		{
+			$messages.append ('<li><strong>[INFO]</strong>: User left: ' + data.name + '</li>');
+		});
+
+		socket.on ('list users', function (users)
+		{
+			$users.html('');
+
+			$.each (users, function (key, val)
+			{
+				$users.append ('<li>' + val + '</li>');
+			});
+		});
+
+		$('button#selectUsername').on ('click', function ()
+		{
+			if ( $username.val().length == 0)
+			{
+				return false;
+			}
+
+			socket.emit ("user connect", {
+				name: $username.val()
+			}, function (ok)
+			{
+				if (ok)
+				{
+					$('div#login_box').remove();
+					$('div#chat_box').show();
+					$messages.append ("<li><strong>[INFO]</strong>: You are connected</li>");
+					$message.focus();
+				}
+				else
+				{
+					alert ("The user name is already taken!");
+				}
+			});
+
+			return false;
+		});
+		
+		$('form#form_message').on ('submit', function ()
+		{
+			if ( $message.val().length == 0)
+				return false;
+			
+			socket.emit ('send message', {
+				message: $message.val()
+			});
+
+			$message.val('');
+			$message.focus();
+
+			return false;
+		});
+	});
+	</script>
+
+	<style>
+		div#chat_box {
+			display:none;
+			width:800px;
+		}
+
+		ul#messages,
+		ul#users
+		{
+			float:left;
+			width:600px;
+			margin:0;
+			padding:0;
+		}
+
+		ul#users
+		{
+			width:200px;
+		}
+
+		form#form_message
+		{
+			border-bottom:2px solid #ddd;
+			padding-bottom:5px;
+			margin-bottom:5px;
+		}
+
+		input#message
+		{
+			width:400px;
+			padding:2px;
+		}
+	</style>
+</head>
+<body>
+	<h1>Chat Client</h1>
+
+	<div id="login_box">
+		<h2>Choose a User Name</h2>
+
+		<input type="text" id="username" placeholder="user name ..." />
+		<button id="selectUsername">Start Chattin'</button>
+	</div>
+
+	<div id="chat_box">
+		<form action="" method="post" id="form_message">
+			<input type="text" id="message" autocomplete="off" placehoder="message ..." />
+			<button type="submit" id="sendMessage">Send</button>
+		</form>
+		
+		<ul id="messages">
+		</ul>
+		
+		<ul id="users">
+		</ul>
+
+		<br style="clear:left;" />
+	</div>
+
+</body>
+</html>
